@@ -203,33 +203,31 @@ class DnsLookupApp(tk.Tk):
         output = ""
         try:
             # Check if the query is a valid IP address.
-            is_ip = False
+            is_ipv4 = False
+            is_ipv6 = False
             try:
-                # Use socket.inet_pton to check for valid IPv4 or IPv6 format.
                 socket.inet_pton(socket.AF_INET, query)
-                is_ip = True
+                is_ipv4 = True
             except socket.error:
                 try:
                     socket.inet_pton(socket.AF_INET6, query)
-                    is_ip = True
+                    is_ipv6 = True
                 except socket.error:
                     pass
 
-            if is_ip:
+            if is_ipv4 or is_ipv6:
                 # Case 1: The query is an IP address (IPv4 or IPv6).
                 # First, perform a reverse DNS lookup to get the domain name.
                 try:
-                    domain, aliases, ips = socket.gethostbyaddr(query)
-                    # Now perform a forward lookup on that domain to get all related IPs.
-                    addr_info = socket.getaddrinfo(domain, None)
-                    
-                    ipv4_addresses = sorted(list(set(info[4][0] for info in addr_info if info[0] == socket.AF_INET)))
-                    ipv6_addresses = sorted(list(set(info[4][0] for info in addr_info if info[0] == socket.AF_INET6)))
-
+                    domain, aliases, _ = socket.gethostbyaddr(query)
                     output = f"✅ Reverse Lookup for IP address '{query}':\n"
                     output += f"   Primary Domain: {domain}\n"
                     if aliases:
                         output += f"   Aliases: {', '.join(aliases)}\n"
+
+                    # Now, perform a forward lookup on that domain to get all related IPs.
+                    ipv4_addresses = sorted(list(set(info[4][0] for info in socket.getaddrinfo(domain, None, socket.AF_INET) if info[0] == socket.AF_INET)))
+                    ipv6_addresses = sorted(list(set(info[4][0] for info in socket.getaddrinfo(domain, None, socket.AF_INET6) if info[0] == socket.AF_INET6)))
                     
                     if ipv4_addresses:
                         output += f"\n   All IPv4 Addresses for '{domain}':\n"
@@ -241,35 +239,43 @@ class DnsLookupApp(tk.Tk):
                         for ip in ipv6_addresses:
                             output += f"     - {ip}\n"
                             
-                except socket.herror:
-                    output = f"❌ Error: No host found for IP address '{query}'.\n"
+                except (socket.herror, socket.gaierror):
+                    output = f"❌ Error: No host or domain found for IP address '{query}'.\n"
 
             else:
                 # Case 2: The query is a domain name.
-                # Use getaddrinfo to get all available addresses (IPv4 and IPv6).
-                addr_info = socket.getaddrinfo(query, None)
-                
-                ipv4_addresses = sorted(list(set(info[4][0] for info in addr_info if info[0] == socket.AF_INET)))
-                ipv6_addresses = sorted(list(set(info[4][0] for info in addr_info if info[0] == socket.AF_INET6)))
-                
-                output = f"✅ Forward Lookup for domain '{query}':\n"
-                
-                if ipv4_addresses:
-                    output += f"\n   All IPv4 Addresses:\n"
-                    for ip in ipv4_addresses:
-                        output += f"     - {ip}\n"
-                
-                if ipv6_addresses:
-                    output += f"\n   All IPv6 Addresses:\n"
-                    for ip in ipv6_addresses:
-                        output += f"     - {ip}\n"
+                # Use separate getaddrinfo calls to get IPv4 and IPv6 addresses reliably.
+                ipv4_addresses = []
+                try:
+                    addr_info_v4 = socket.getaddrinfo(query, None, socket.AF_INET)
+                    ipv4_addresses = sorted(list(set(info[4][0] for info in addr_info_v4 if info[0] == socket.AF_INET)))
+                except socket.gaierror:
+                    pass # IPv4 lookup failed, continue with IPv6
+
+                ipv6_addresses = []
+                try:
+                    addr_info_v6 = socket.getaddrinfo(query, None, socket.AF_INET6)
+                    ipv6_addresses = sorted(list(set(info[4][0] for info in addr_info_v6 if info[0] == socket.AF_INET6)))
+                except socket.gaierror:
+                    pass # IPv6 lookup failed
+
+                if not ipv4_addresses and not ipv6_addresses:
+                     output = f"❌ Error: Could not resolve '{query}'.\n"
+                else:
+                    output = f"✅ Forward Lookup for domain '{query}':\n"
+                    if ipv4_addresses:
+                        output += f"\n   All IPv4 Addresses:\n"
+                        for ip in ipv4_addresses:
+                            output += f"     - {ip}\n"
+                    
+                    if ipv6_addresses:
+                        output += f"\n   All IPv6 Addresses:\n"
+                        for ip in ipv6_addresses:
+                            output += f"     - {ip}\n"
 
         except socket.timeout:
             output = f"❌ Error: The lookup for '{query}' timed out after 5 seconds.\n"
             output += "   This may be due to a non-existent or unresponsive host.\n"
-        except socket.gaierror as e:
-            output = f"❌ Error: Could not resolve '{query}'.\n"
-            output += f"   Details: {e}\n"
         except Exception as e:
             output = f"⚠️ An unexpected error occurred: {e}\n"
         
