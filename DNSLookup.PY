@@ -226,8 +226,19 @@ class DnsLookupApp(tk.Tk):
                         output += f"   Aliases: {', '.join(aliases)}\n"
 
                     # Now, perform a forward lookup on that domain to get all related IPs.
-                    ipv4_addresses = sorted(list(set(info[4][0] for info in socket.getaddrinfo(domain, None, socket.AF_INET) if info[0] == socket.AF_INET)))
-                    ipv6_addresses = sorted(list(set(info[4][0] for info in socket.getaddrinfo(domain, None, socket.AF_INET6) if info[0] == socket.AF_INET6)))
+                    ipv4_addresses = []
+                    try:
+                        addr_info_v4 = socket.getaddrinfo(domain, None, socket.AF_INET)
+                        ipv4_addresses = sorted(list(set(info[4][0] for info in addr_info_v4 if info[0] == socket.AF_INET)))
+                    except socket.gaierror:
+                        pass
+                        
+                    ipv6_addresses = []
+                    try:
+                        addr_info_v6 = socket.getaddrinfo(domain, None, socket.AF_INET6)
+                        ipv6_addresses = sorted(list(set(info[4][0] for info in addr_info_v6 if info[0] == socket.AF_INET6)))
+                    except socket.gaierror:
+                        pass
                     
                     if ipv4_addresses:
                         output += f"\n   All IPv4 Addresses for '{domain}':\n"
