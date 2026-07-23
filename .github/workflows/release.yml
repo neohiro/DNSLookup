@@ -45,19 +45,19 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           pyinstaller --noconfirm --onedir --windowed --icon=icon.ico DNSLookup.PY
-          Compress-Archive -Path "dist\DNSLookup\*" -DestinationPath "DNSLookup-Windows.zip" -Force
+          Compress-Archive -Path "dist\DNSLookup" -DestinationPath "DNSLookup-Windows.zip" -Force
 
       - name: Build macOS Executable
         if: matrix.os == 'macos-latest'
         run: |
-          pyinstaller --noconfirm --onedir --windowed --icon=icon.ico DNSLookup.PY
+          pyinstaller --noconfirm --onedir --windowed --icon=icon.icns DNSLookup.PY
           cd dist
           zip -r ../DNSLookup-macOS.zip DNSLookup.app
 
       - name: Build Linux Executable
         if: matrix.os == 'ubuntu-latest'
         run: |
-          pyinstaller --noconfirm --onedir --windowed --icon=icon.ico DNSLookup.PY
+          pyinstaller --noconfirm --onedir --windowed --icon=icon.png DNSLookup.PY
           cd dist
           zip -r ../DNSLookup-Linux.zip DNSLookup
 
