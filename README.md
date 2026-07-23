@@ -9,3 +9,8 @@ Advanced DNS Lookup tool for Windows, Linux & macOS
 
 Forward and reverse lookups, more information about the domain's total ip addresses.
 Supports IPv6 Lookup too.
+
+## 📦 Installation
+
+You can download the compiled standalone release for your operating system (Windows, macOS, or Linux) directly from the **[Releases](../../releases)** tab. No Python installation is required! Just download the .zip for your OS, extract, and run.
+
